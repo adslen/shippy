@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package shippy.consignment;
+
+option go_package = "proto/consignment";
+
+import "proto/consignment/consignment.proto";
+
+// 货轮微服务
+service ShippingService {
+    // 托运一批货物
+    rpc CreateConsignment (CreateConsignmentRequest) returns (CreateConsignmentResponse) {
+    }
+    
+    //获取货物信息
+    rpc GetConsignment (GetConsignmentRequest) returns (consignment.GetConsignmentResponse) {
+    }
+
+    //展现托运货物
+    rpc ListConsignments(ListConsignmentRequest)returns(ListConsignmentResponse){
+    }
+}
+
+//货轮流式服务
+service StreamShippingService{
+    rpc List(ListConsignmentRequest)returns(ListConsignmentResponse){
+    }
+}

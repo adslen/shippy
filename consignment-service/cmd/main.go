@@ -4,8 +4,12 @@ import (
 	"context"
 
 	pb "github.com/adslen/shippy/proto/consignment"
+	"google.golang.org/grpc/codes"
+	status_v1 "google.golang.org/grpc/status"
 
 	"github.com/adslen/shippy/internal/log"
+	"github.com/adslen/shippy/internal/server"
+	"google.golang.org/genproto/googleapis/rpc/status"
 )
 
 const (
@@ -36,19 +40,40 @@ type service struct {
 	repo Repository
 }
 
-func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment) (*pb.Response, error) {
-	// 接收承运的货物
-	consignment, err := s.repo.Create(req)
-	if err != nil {
-		return nil, err
+// 托运一批货物
+func (s *service) CreateConsignment(ctx context.Context, req *pb.CreateConsignmentRequest) (*pb.CreateConsignmentResponse, error) {
+	size := len(req.GetConsignments())
+	res := &pb.CreateConsignmentResponse{
+		Consignments: make([]*pb.Consignment, size),
+		Status:       make([]*status.Status, size),
 	}
-	resp := &pb.Response{Created: true, Consignment: consignment}
-	return resp, nil
+
+	for i, rc := range req.GetConsignments() {
+		consignment, err := s.repo.Create(rc)
+		res.Consignments[i] = consignment
+		res.Status[i] = &status.Status{
+			Code: int32(codes.OK),
+		}
+		if err != nil {
+			res.Status[i] = &status.Status{
+				Code:    int32(status_v1.Code(err)),
+				Message: err.Error(),
+			}
+		}
+	}
+	return res, nil
 }
-func (s *service) GetConsignments(ctx context.Context, req *pb.GetRequest) (*pb.Response, error) {
-	allConsignments := s.repo.GetAll()
-	resp := &pb.Response{Consignments: allConsignments}
-	return resp, nil
+
+//获取货物信息
+func (s *service) GetConsignment(ctx context.Context, req *pb.GetConsignmentRequest) (*pb.GetConsignmentResponse, error) {
+
+	return nil, nil
+}
+
+//展现托运货物
+func (s *service) ListConsignments(ctx context.Context, req *pb.ListConsignmentRequest) (*pb.ListConsignmentResponse, error) {
+
+	return nil, nil
 }
 
 func NewShippyService() *service {
@@ -58,15 +83,15 @@ func NewShippyService() *service {
 }
 
 func main() {
-
+	log.L().Infof("consignment-service start...")
 	//New
 	shipService := NewShippyService()
 	srv := server.NewServer()
-	//Register
 	if err := srv.RegisterService(pb.RegisterShippingServiceServer, shipService); err != nil {
-		log.L().Fatalf("register service failed. err: %v", err)
+		log.Fatal(err)
 	}
-	//Run
-	log.L().Infof("consignment-service start...")
-	srv.Run(server.Addr("10.44.202.200:50051"))
+
+	if err := srv.Run(server.Addr("0.0.0.0:50051")); err != nil {
+		log.Fatal(err)
+	}
 }

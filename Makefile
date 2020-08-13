@@ -4,4 +4,7 @@ build:
 	protoc -I.  \
 		   -I${HOME}/go/src/googleapis \
 		   --go_out=plugins=grpc:./   \
-			 proto/consignment/consignment.proto
+			 proto/consignment/*.proto 
+
+run:
+	go run  consignment-service/cmd/main.go
